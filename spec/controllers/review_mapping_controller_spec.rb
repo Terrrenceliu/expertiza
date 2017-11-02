@@ -83,7 +83,7 @@ describe ReviewMappingController do
     end
   end
 
-  describe '#add_metareviewer' do
+  describe '#add_metareviewer' do 
     it 'redirects to review_mapping#list_mappings page' do
       expect(ResponseMap).to receive(:find).with(any_args).and_return(review_response_map)
       expect(User).to receive(:from_params).with(any_args).and_return(user)
