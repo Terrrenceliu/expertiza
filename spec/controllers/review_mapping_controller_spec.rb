@@ -84,7 +84,13 @@ describe ReviewMappingController do
   end
 
   describe '#add_metareviewer' do
-    it 'redirects to review_mapping#list_mappings page'
+    it 'redirects to review_mapping#list_mappings page' do
+      expect(ResponseMap).to receive(:find).with(any_args).and_return(review_response_map)
+      expect(User).to receive(:from_params).with(any_args).and_return(user)
+      expect(user).to receive(:name).and_return("test")
+      get :add_metareviewer
+      expect(response.location).to match(/http:\/\/test.host\/review_mapping\/list_mappings\?id=1&msg/)
+    end
   end
 
   describe '#assign_metareviewer_dynamically' do
@@ -176,7 +182,11 @@ describe ReviewMappingController do
   describe '#delete_metareview' do
     it 'redirects to review_mapping#list_mappings page after deletion' do
       dummy_mapping = double
-      expect(MetareviewResponseMap).to receive(:find).and_return()
+      expect(MetareviewResponseMap).to receive(:find).and_return(dummy_mapping)
+      expect(dummy_mapping).to receive(:assignment).and_return(assignment)
+      expect(dummy_mapping).to receive(:delete)
+      get :delete_metareview
+      expect(response).to redirect_to action: 'list_mappings', id: assignment.id
     end
   end
 
@@ -187,11 +197,26 @@ describe ReviewMappingController do
   describe '#automatic_review_mapping' do
     context 'when teams is not empty' do
       context 'when all nums in params are 0' do
-        it 'shows an error flash message and redirects to review_mapping#list_mappings page'
+        it 'shows an error flash message and redirects to review_mapping#list_mappings page' do
+          expect(AssignmentParticipant).to receive_message_chain("where.to_a.reject.shuffle!").with(any_args).and_return(participant)
+          expect(AssignmentTeam).to receive_message_chain("where.to_a.shuffle!").with(any_args).and_return(team)
+          allow(team).to receive(:empty?).and_return(false)
+          get :automatic_review_mapping, :max_team_size => 0, :num_reviews_per_studen => 0, :num_reviews_per_submission=> 0,
+              :num_calibrated_artifacts=>0, :num_uncalibrated_artifacts=>0, :id=>1
+          expect(flash[:error]) =~ /Please choose either the number of reviews per student or the number of reviewers per team (student), not both./i
+          expect(response).to redirect_to action: 'list_mappings', id: 1
+        end
       end
 
       context 'when all nums in params are 0 except student_review_num' do
-        it 'runs automatic review mapping strategy and redirects to review_mapping#list_mappings page'
+        it 'runs automatic review mapping strategy and redirects to review_mapping#list_mappings page' do
+          expect(AssignmentParticipant).to receive_message_chain("where.to_a.reject.shuffle!").with(any_args).and_return(participant)
+          expect(AssignmentTeam).to receive_message_chain("where.to_a.shuffle!").with(any_args).and_return(team)
+          allow(team).to receive(:empty?).and_return(false)
+          get :automatic_review_mapping, :max_team_size => 0, :num_reviews_per_studen => 1, :num_reviews_per_submission=> 0,
+              :num_calibrated_artifacts=>0, :num_uncalibrated_artifacts=>0, :id=>1
+
+        end
       end
 
       context 'when calibrated params are not 0' do
